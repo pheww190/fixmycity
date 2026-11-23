@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit. `npm run setup` regenerates backend/.env locally.
+.env
+backend/.env
+
+# Local runtime data: the SQLite database, the seed backups and uploaded photos
+# all contain citizens' personal records. They stay on the machine.
+backend/data/
+backend/uploads/
+
+# Logs and OS clutter
+*.log
+.DS_Store
+Thumbs.db
