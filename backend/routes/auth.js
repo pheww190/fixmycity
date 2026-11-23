@@ -69,9 +69,13 @@ authRouter.post('/citizen/register', registrationLimiter, codeRequestLimiter, as
   // Fire and forget — the first send creates an Ethereal account over HTTPS and
   // can take several seconds. The citizen should not wait for the mail server.
   if (email && email.trim()) {
-    sendOtpEmail(email.trim(), code).catch((err) =>
-      console.error('[mailer] registration OTP failed:', err.message)
-    );
+    // sendOtpEmail resolves null when delivery fails; print the code in dev so a
+    // broken mail server never locks you out of your own app.
+    sendOtpEmail(email.trim(), code).then((sent) => {
+      if (!sent && process.env.NODE_ENV !== 'production') {
+        console.log(`[AUTH REGISTRATION OTP] (email not delivered — use this) for ${name}: ${code}`);
+      }
+    });
   } else {
     console.log(`[AUTH REGISTRATION OTP] for ${name} (${phone || 'no phone'}): ${code}`);
   }
@@ -196,9 +200,9 @@ const handleRequestOtp = async (req, res) => {
   console.log(`[AUTH LOGIN OTP] Code: ${code} for citizen ${citizen.name} (${citizen.email || 'no email'})`);
 
   if (citizen.email) {
-    sendOtpEmail(citizen.email, code).catch((err) =>
-      console.error('[mailer] login OTP failed:', err.message)
-    );
+    // The code is already printed just above, so a failed send only needs the
+    // reason (mailer.js logs it).
+    sendOtpEmail(citizen.email, code).catch(() => {});
   } else {
     console.log(`[AUTH LOGIN OTP] for citizen ${citizen.name} (${citizen.phone || 'no phone'}): ${code}`);
   }

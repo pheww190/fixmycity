@@ -31,7 +31,15 @@ async function getTransporter() {
     return transporter;
   }
 
-  // Create a free Ethereal test account (no real email sent)
+  // No credentials: mail is captured by Ethereal and never delivered. Say so
+  // loudly, because "the OTP never arrived" is the symptom.
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      '\n📧 SMTP_USER / SMTP_PASS are not set in backend/.env — using an Ethereal\n' +
+      '   test account. Real emails will NOT be delivered. The OTP is printed in\n' +
+      '   this terminal instead.\n'
+    );
+  }
   testAccount = await nodemailer.createTestAccount();
   transporter = nodemailer.createTransport({
     host: 'smtp.ethereal.email',

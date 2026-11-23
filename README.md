@@ -92,3 +92,32 @@ The web application will be accessible at `http://localhost:3000`.
   - Admins receive role `'admin'`.
   - Timing is leveled with a dummy bcrypt comparison for unknown emails.
   - Officer access to `/all`, `/stats`, `/python-stats`, `/geotagged`, `/assign`, `/status`, and `/:id` is scoped strictly to their department. If an officer has no department, access fails closed.
+
+## Email / OTP is not arriving
+
+`backend/.env` is **not** in git (it holds your SMTP password). A fresh clone
+therefore has no mail credentials, and OTPs go to an Ethereal test inbox instead
+of a real address. The server now says so on the first send:
+
+```
+📧 SMTP_USER / SMTP_PASS are not set in backend/.env — using an Ethereal
+   test account. Real emails will NOT be delivered.
+```
+
+Fix: copy your `backend/.env` from the old folder, or set the two values again.
+
+```ini
+SMTP_USER=you@gmail.com
+SMTP_PASS=abcd efgh ijkl mnop      # Gmail App Password, 16 characters
+```
+
+Gmail needs an **App Password** (Google Account → Security → 2-Step Verification
+→ App passwords), not your normal password; a normal one fails with
+`535-5.4.7 Username and Password not accepted`. The reason for any failure is
+logged as `Email error (otp): …`.
+
+You are never locked out: the code is printed in the server terminal —
+
+```
+[AUTH LOGIN OTP] Code: 123456 for citizen Chaitanya (you@gmail.com)
+```
