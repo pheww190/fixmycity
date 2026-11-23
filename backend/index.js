@@ -54,11 +54,10 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: [
+        // Leaflet, MapLibre, Chart.js and exifr are served from /vendor, so no
+        // third-party script host is needed.
         "'self'",
-        "'unsafe-inline'",
-        "https://cdn.jsdelivr.net",
-        "https://unpkg.com",
-        "https://cdnjs.cloudflare.com"
+        "'unsafe-inline'"
       ],
       // The pages use inline onclick="..." handlers. Helmet defaults this
       // directive to 'none', which silently disables every one of them.
@@ -66,8 +65,6 @@ app.use(helmet({
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
-        "https://unpkg.com",
-        "https://cdnjs.cloudflare.com",
         "https://fonts.googleapis.com"
       ],
       imgSrc: [

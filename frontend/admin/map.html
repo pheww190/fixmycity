@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Map View & Spatial Analysis — FixMyCity Admin</title>
   <link rel="stylesheet" href="/shared/style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="/vendor/leaflet.css" />
+  <link rel="stylesheet" href="/vendor/maplibre-gl.css" />
+  <link rel="stylesheet" href="/vendor/MarkerCluster.css" />
+  <link rel="stylesheet" href="/vendor/MarkerCluster.Default.css" />
   <style>
     body, html { height: 100%; overflow: hidden; margin: 0; padding: 0; }
     #adminMap { height: calc(100vh - 64px); width: 100%; }
@@ -150,10 +150,10 @@
   </div>
 
     <script src="/shared/escape.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+  <script src="/vendor/leaflet.js"></script>
+  <script src="/vendor/maplibre-gl.js"></script>
+  <script src="/vendor/leaflet-maplibre-gl.js"></script>
+  <script src="/vendor/leaflet.markercluster.js"></script>
   <script>
     Auth.requireAuth('admin');
 
@@ -193,14 +193,15 @@
         }
       }, 1000);
 
-      markers = L.markerClusterGroup({
-        maxClusterRadius: 45,
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        // complaints filed without moving the pin share one coordinate; zooming
-        // in separates them instead of leaving one bubble
-        disableClusteringAtZoom: 15
-      });
+      // If the clustering plugin is missing, a plain layer group still draws
+      // every pin — the page used to throw here and never load any data.
+      markers = (typeof L.markerClusterGroup === 'function')
+        ? L.markerClusterGroup({
+            maxClusterRadius: 45,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+          })
+        : L.layerGroup();
       map.addLayer(markers);
 
       loadMapData();
@@ -381,7 +382,14 @@
       `).join('');
     }
 
-    initMap();
+    try {
+      initMap();
+    } catch (e) {
+      console.error('Map init failed:', e);
+      const note = document.getElementById('mapScopeNote');
+      if (note) note.innerHTML = '<span style="color:#dc2626">Map could not start: ' + esc(e.message) + '</span>';
+      try { loadMapData(); } catch (_) {}
+    }
   </script>
 </body>
 </html>

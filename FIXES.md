@@ -150,3 +150,31 @@ Photo Gallery.
 
 `initMap` called `L.maplibreGL(...)` without a guard, so if that CDN script failed
 to load the whole map stayed blank. It now falls back to CARTO raster tiles.
+
+## 12. The map libraries are served locally, not from a CDN
+
+Every map page loaded Leaflet, MapLibre, the cluster plugin, Chart.js and exifr
+from unpkg / jsDelivr. One failed script and the map silently died: `initMap`
+threw, `loadMapData()` never ran, and the sidebar sat at "0" and "Loading…"
+forever — which is exactly what "the complaint is not showing on the map" looked
+like.
+
+All of them now live in `frontend/vendor/` (1.4 MB) and are served by Express:
+
+    leaflet.js, leaflet.css
+    leaflet.markercluster.js, MarkerCluster.css, MarkerCluster.Default.css
+    leaflet-heat.js
+    maplibre-gl.js, maplibre-gl.css, leaflet-maplibre-gl.js
+    chart.umd.min.js, full.umd.js (exifr)
+
+The CSP no longer needs to allow any third-party script host.
+
+## 13. Three map bugs found while testing with the real libraries
+
+- `disableClusteringAtZoom` needs a `maxZoom` on the map; with a MapLibre layer
+  there is none, so the cluster plugin threw "Map has no maxZoom specified" and
+  the admin map loaded no data at all. Option removed.
+- If the cluster plugin is ever missing, the page now falls back to a plain layer
+  group instead of throwing.
+- If map setup fails for any other reason, the complaint data is still loaded and
+  the error is printed in the sidebar.
