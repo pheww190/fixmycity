@@ -50,9 +50,6 @@
       <button id="btnHeat" class="toolbar-btn" onclick="toggleLayer('heat')">🔥 Heatmap</button>
       <button id="btnWard" class="toolbar-btn" onclick="toggleLayer('ward')">🗺️ Ward Zones</button>
       <button id="btnPhotos" class="toolbar-btn" onclick="toggleLayer('photos')">📷 Photo Gallery</button>
-      <button id="btnRedzones" class="toolbar-btn" onclick="toggleLayer('redzones')">🔴 Red Zones</button>
-      <button id="btnPrediction" class="toolbar-btn" onclick="toggleLayer('prediction')" style="background: linear-gradient(90deg, #8b5cf6, #ec4899); color: white; border:none;">🤖 AI Prediction</button>
-      <button id="btnMonthly" class="toolbar-btn" onclick="toggleLayer('monthly')">📅 Monthly View</button>
     </div>
 
     <button id="fullscreenBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
@@ -72,15 +69,29 @@
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
   <script>
-    let map, markersLayer, heatLayer, wardLayer, photosLayer, redzoneLayer, predictionLayer;
+    let map, markersLayer, heatLayer, wardLayer, photosLayer;
     let allComplaints = [];
     const defaultCoords = [12.9716, 77.5946]; // Bengaluru
 
     function initMap() {
       map = L.map('publicMap').setView(defaultCoords, 12);
-      L.maplibreGL({
-        style: 'https://tiles.openfreemap.org/styles/liberty'
-      }).addTo(map);
+
+      // MapLibre comes from a CDN. If that script fails to load, the old code
+      // threw here and the whole map stayed blank — fall back to raster tiles.
+      try {
+        if (typeof L.maplibreGL === 'function') {
+          L.maplibreGL({
+            style: 'https://tiles.openfreemap.org/styles/liberty'
+          }).addTo(map);
+        } else {
+          throw new Error('maplibre plugin unavailable');
+        }
+      } catch (e) {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+      }
       markersLayer = L.layerGroup().addTo(map);
       photosLayer  = L.layerGroup();
       wardLayer    = buildWardLayer();
@@ -122,9 +133,7 @@
         const heatPoints = [];
         markersLayer.clearLayers();
         photosLayer.clearLayers();
-        redzoneLayer = L.layerGroup();
-        predictionLayer = L.layerGroup();
-
+    
         // Several complaints can sit on the exact same spot (the pin used to
         // default to the city centre). One marker per location, with a count,
         // otherwise the newest complaint hides underneath the older ones.
@@ -186,20 +195,6 @@
           });
         });
 
-        // Mock Red Zones (Repeated Complaints) - random clusters
-        const center = defaultCoords;
-        L.circle([center[0]+0.02, center[1]-0.02], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 800 })
-         .bindPopup('<b>Red Zone</b><br>High frequency of repeated complaints this month.')
-         .addTo(redzoneLayer);
-        L.circle([center[0]-0.03, center[1]+0.04], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 1200 })
-         .bindPopup('<b>Red Zone</b><br>Persistent infrastructure issues detected.')
-         .addTo(redzoneLayer);
-
-        // Mock AI Prediction
-        L.circle([center[0]+0.05, center[1]+0.01], { color: '#ec4899', fillColor: '#8b5cf6', fillOpacity: 0.4, radius: 1500, className: 'hotspot-pulse' })
-         .bindPopup('<b>🤖 AI Prediction: Emerging Hotspot</b><br>85% probability of severe waterlogging in the next 15 days based on weather and previous complaint patterns.')
-         .addTo(predictionLayer);
-
         if (heatLayer) map.removeLayer(heatLayer);
         heatLayer = L.heatLayer(heatPoints, { radius:28, blur:18, maxZoom:17, gradient:{ 0.3:'#3b82f6', 0.6:'#f59e0b', 1:'#ef4444' } });
       } catch(e) { console.error('Map load error', e); }
@@ -211,23 +206,13 @@
       const btn = document.getElementById(btnId);
       if(btn) btn.classList.add('active');
 
-      [markersLayer, wardLayer, photosLayer, redzoneLayer, predictionLayer].forEach(l => { try { map.removeLayer(l); } catch(e){} });
+      [markersLayer, wardLayer, photosLayer].forEach(l => { try { map.removeLayer(l); } catch(e){} });
       if (heatLayer) { try { map.removeLayer(heatLayer); } catch(e){} }
 
       if (name === 'markers') markersLayer.addTo(map);
       else if (name === 'heat' && heatLayer) heatLayer.addTo(map);
       else if (name === 'ward') { wardLayer.addTo(map); markersLayer.addTo(map); }
       else if (name === 'photos') photosLayer.addTo(map);
-      else if (name === 'redzones') { redzoneLayer.addTo(map); markersLayer.addTo(map); }
-      else if (name === 'prediction') { predictionLayer.addTo(map); markersLayer.addTo(map); }
-      else if (name === 'monthly') {
-        // Mock Monthly comparison by reducing opacity on some markers
-        markersLayer.addTo(map);
-        markersLayer.eachLayer(layer => {
-          if (Math.random() > 0.5) { layer.setStyle({ opacity: 0.3, fillOpacity: 0.2 }); }
-          else { layer.setStyle({ opacity: 1, fillOpacity: 0.85 }); }
-        });
-      }
     }
 
     function toggleFullscreen() {

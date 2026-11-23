@@ -128,3 +128,25 @@ was missing was any explanation of *why* a map can legitimately be empty:
 - **Clustering hid stacked pins.** Complaints filed at the same coordinate merged
   into one bubble; clustering now switches off at zoom 15 so zooming in separates
   them.
+
+## 10. Invented data removed
+
+Four panels presented made-up numbers as analysis. They are gone:
+
+- **Admin dashboard, "AI Predictive Insights (Next 7 Days)"** — hard-coded badges
+  ("High Risk: Water Logging (Zone B)", "Med Risk: Potholes (Zone C)") with no
+  model behind them.
+- **Public map, "Red Zones"** — two circles at fixed offsets from the city
+  centre, labelled "high frequency of repeated complaints".
+- **Public map, "AI Prediction"** — a circle claiming an "85% probability of
+  severe waterlogging in the next 15 days".
+- **Public map, "Monthly View"** — dimmed markers at random (`Math.random()`) to
+  imitate a comparison.
+
+The map keeps the layers that show real data: Complaints, Heatmap, Ward Zones and
+Photo Gallery.
+
+## 11. Public map no longer dies when the CDN fails
+
+`initMap` called `L.maplibreGL(...)` without a guard, so if that CDN script failed
+to load the whole map stayed blank. It now falls back to CARTO raster tiles.
